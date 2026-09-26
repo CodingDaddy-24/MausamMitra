@@ -21,9 +21,12 @@ htmlcov/
 
 # JavaScript / frontend
 node_modules/
+.pnpm-store/
+frontend/.pnpm-store/
 dist/
 build/
 .vite/
+*.tsbuildinfo
 coverage/
 npm-debug.log*
 yarn-debug.log*

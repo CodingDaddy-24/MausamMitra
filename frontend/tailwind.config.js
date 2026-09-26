@@ -1,0 +1,1 @@
+export default { content: ['./index.html', './src/**/*.{ts,tsx}'], theme: { extend: { colors: { ink: '#13283c', navy: '#123b5d', meteorology: '#1a5b9c', paper: '#f0f4f8', line: '#d1d5db' }, fontFamily: { mono: ['"Roboto Mono"', 'monospace'] } } }, plugins: [] }

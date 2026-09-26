@@ -1,0 +1,1 @@
+"""MausamMitra forecast service."""
