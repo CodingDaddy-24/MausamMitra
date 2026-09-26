@@ -104,3 +104,28 @@ async def fetch_model(key: str, location: dict, forecast_days: int = 4) -> Provi
 async def fetch_all(location: dict) -> list[ProviderResult]:
     results = await asyncio.gather(*(fetch_model(key, location) for key in MODELS))
     return list(results)
+
+
+async def fetch_current(location: dict) -> dict[str, float | str | None] | None:
+    """Fetch the provider's current-condition snapshot separately from forecast hours."""
+    settings = get_settings()
+    params = {
+        "latitude": location["latitude"], "longitude": location["longitude"],
+        "current": "temperature_2m,rain,relative_humidity_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover",
+        "timezone": location.get("timezone", "Asia/Kolkata"), "wind_speed_unit": "kmh",
+        "precipitation_unit": "mm", "temperature_unit": "celsius",
+    }
+    try:
+        payload = await _json(settings.open_meteo_forecast_url, params, f"current:{location['latitude']}:{location['longitude']}")
+    except ProviderError:
+        return None
+    current = payload.get("current") or {}
+    if not current:
+        return None
+    return {
+        "time": current.get("time"), "temperature_c": current.get("temperature_2m"),
+        "rainfall_mm": current.get("rain"), "relative_humidity_percent": current.get("relative_humidity_2m"),
+        "apparent_temperature_c": current.get("apparent_temperature"), "wind_speed_kmh": current.get("wind_speed_10m"),
+        "wind_direction_deg": current.get("wind_direction_10m"), "wind_gusts_kmh": current.get("wind_gusts_10m"),
+        "cloud_cover_percent": current.get("cloud_cover"),
+    }

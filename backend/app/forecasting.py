@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import SkillMetric, WeightSnapshot
-from .providers import MODELS, ProviderResult, fetch_all, geocode
+from .providers import MODELS, ProviderResult, fetch_all, fetch_current, geocode
 from .risk import evaluate_risks
 from .schemas import ForecastResponse, HourlyPoint, ProviderForecast
 from .weighting import PROVIDERS, inverse_error_weights
@@ -72,7 +72,8 @@ def _aggregate(points: list[HourlyPoint], lead_hours: int) -> dict:
 
 async def build_forecast(request, session: Session) -> ForecastResponse:
     location = await geocode(request.district, request.state)
-    provider_results = await fetch_all(location)
+    current_task = fetch_current(location)
+    provider_results, current = await fetch_all(location), await current_task
     if not any(item.available for item in provider_results):
         raise RuntimeError("All forecast providers are unavailable. Check provider status and try again.")
 
@@ -107,4 +108,4 @@ async def build_forecast(request, session: Session) -> ForecastResponse:
     risk_window = _aggregate(blended, 24)
     risks = evaluate_risks(risk_window["rainfall_mm"] or 0, risk_window["wind_speed_kmh"] or 0, risk_window["temperature_c"] or 0)
     available_runs = [item.run_time for item in provider_results if item.available and item.run_time]
-    return ForecastResponse(location=location, lead_hours=request.lead_hours, generated_at=datetime.now(timezone.utc), source_run=max(available_runs) if available_runs else None, blend_method="Per-variable inverse-error weighting with vector-averaged wind direction", weighting_note=" ".join(sorted(set(notes))), providers=forecast_rows, blended_hourly=blended, summary=summary, weights=display_weights, variable_weights=variable_weights, risks=risks)
+    return ForecastResponse(location=location, lead_hours=request.lead_hours, generated_at=datetime.now(timezone.utc), source_run=max(available_runs) if available_runs else None, blend_method="Per-variable inverse-error weighting with vector-averaged wind direction", weighting_note=" ".join(sorted(set(notes))), providers=forecast_rows, current=current, blended_hourly=blended, summary=summary, weights=display_weights, variable_weights=variable_weights, risks=risks)

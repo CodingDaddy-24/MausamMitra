@@ -44,6 +44,7 @@ class ForecastResponse(BaseModel):
     blend_method: str
     weighting_note: str
     providers: list[ProviderForecast]
+    current: dict[str, float | str | None] | None = None
     blended_hourly: list[HourlyPoint]
     summary: dict[str, float | str | None]
     weights: dict[str, float]
