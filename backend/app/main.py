@@ -1,6 +1,4 @@
-from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .config import get_settings
-from .database import Base, engine, get_db
+from .database import get_db
 from .forecasting import _aggregate, build_forecast
 from .locations import _center, district_feature_in_state, list_districts, list_regions, list_states
 from .providers import ProviderError
@@ -20,13 +18,7 @@ from .weighting import PROVIDERS
 settings = get_settings()
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(title="MausamMitra API", description="India-focused, multi-model forecast blending and prototype risk indicators.", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="MausamMitra API", description="India-focused, multi-model forecast blending and prototype risk indicators.", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 

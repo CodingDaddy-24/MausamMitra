@@ -35,8 +35,6 @@ pnpm-debug.log*
 # Runtime data and caches
 .cache/
 *.log
-*.sqlite3
-*.db
 tmp/
 temp/
 

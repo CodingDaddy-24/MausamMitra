@@ -23,7 +23,7 @@ The browser calls FastAPI only. Database credentials and any future provider sec
 
 - Frontend: React 18, Vite, TypeScript, Tailwind CSS, React Router, Axios, React-Leaflet/Leaflet, Recharts, Lucide
 - Backend: Python 3.11+, FastAPI, httpx, Pydantic Settings, SQLAlchemy
-- Database: Supabase-managed PostgreSQL (required for app runtime); isolated SQLite is used only by automated tests
+- Database: Supabase-managed PostgreSQL only; tests mock database sessions and do not start a local database
 - Forecast data: Open-Meteo weather forecast and geocoding APIs
 - Administrative data: provided ADM0/ADM1/ADM2 GeoJSON; source and license notes in [`docs/geojson-sources.md`](docs/geojson-sources.md)
 
@@ -38,7 +38,7 @@ frontend/src/components/     Shared selectors, cards, map, charts, and states
 frontend/src/pages/          Dashboard, map, comparison, extreme, history
 tests/                       Backend and frontend unit/component tests
 .env.example                 Environment variable names and safe local defaults
-.gitignore                   Secrets, caches, dependency/build outputs, local DB
+.gitignore                   Secrets, caches, and dependency/build outputs
 ```
 
 ## Environment variables
@@ -73,20 +73,9 @@ py -m uvicorn app.main:app --reload
 
 The API is at `http://localhost:8000`; interactive OpenAPI docs are at `http://localhost:8000/docs`. Set a valid Supabase `DATABASE_URL` before launching the backend.
 
-MausamMitra requires Supabase Postgres at runtime. Create a Supabase project, apply [`backend/migrations/001_skill_metrics.sql`](backend/migrations/001_skill_metrics.sql) through the Supabase SQL editor or migration workflow, and set `DATABASE_URL` in `backend/.env` to the project's server-side PostgreSQL connection string. For serverless/Vercel, choose Supabase's shared transaction pooler (port 6543); the backend uses SQLAlchemy `NullPool` and disables psycopg prepared statements for that mode. Never put this URL in a `VITE_` variable or commit it.
+MausamMitra requires Supabase Postgres at runtime. The configured Supabase project already has the schema migration applied. For a fresh project, apply [`backend/migrations/001_skill_metrics.sql`](backend/migrations/001_skill_metrics.sql) through the Supabase SQL editor or migration workflow, then set `DATABASE_URL` in `backend/.env` to the project's server-side PostgreSQL connection string. For serverless/Vercel, choose Supabase's shared transaction pooler (port 6543); the backend uses SQLAlchemy `NullPool` and disables psycopg prepared statements for that mode. Never put this URL in a `VITE_` variable or commit it.
 
-Copy `.env.example` to `backend/.env`, replace the placeholders with the connection details from Supabase's **Connect → Transaction pooler** panel, URL-encoding reserved characters in the database password, and keep the file private. The local API does not start without `DATABASE_URL`; the app no longer falls back to a local SQLite database. SQLite is permitted only inside pytest's isolated test configuration.
-
-#### Move existing local history
-
-After applying the schema migration and setting `DATABASE_URL` in the shell, copy the existing local SQLite tables into the Supabase project:
-
-```powershell
-$env:DATABASE_URL = 'postgresql+psycopg://postgres.<PROJECT_REF>:<PASSWORD>@aws-0-<REGION>.pooler.supabase.com:6543/postgres?sslmode=require'
-py backend/scripts/migrate_sqlite_to_supabase.py --sqlite .\mausammitra.db
-```
-
-The script copies `model_skill_metrics` and `weight_history`, preserves record IDs, skips IDs already present, reports inserted counts, and leaves the source SQLite file untouched. The migration must be applied first. The current local database contains 600 `weight_history` rows and no skill metric rows.
+Copy `.env.example` to `backend/.env`, replace the placeholders with the connection details from Supabase's **Connect → Transaction pooler** panel, URL-encoding reserved characters in the database password, and keep the file private. The local API requires `DATABASE_URL` and rejects non-PostgreSQL database URLs. The database engine is not initialized at startup; schema changes are deployed through migrations.
 
 ### Frontend
 
