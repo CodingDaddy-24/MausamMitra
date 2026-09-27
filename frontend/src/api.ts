@@ -1,7 +1,8 @@
 import axios from 'axios'
 import type { Forecast, LocationSelection, ModelMetric, Variable } from './types'
 
-export const api = axios.create({ baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000', timeout: 45_000 })
+const apiBaseUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin)
+export const api = axios.create({ baseURL: apiBaseUrl, timeout: 45_000 })
 export function errorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) return error.response?.data?.detail || (error.code === 'ECONNABORTED' ? 'The weather service timed out. Try again.' : 'Could not reach the MausamMitra API. Check that the backend is running.')
   return 'Something went wrong. Please try again.'
