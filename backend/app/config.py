@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "MausamMitra API"
     api_prefix: str = "/api"
-    database_url: str = "sqlite:///./mausammitra.db"
+    database_url: str
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     open_meteo_forecast_url: str = "https://api.open-meteo.com/v1/forecast"
     open_meteo_geocoding_url: str = "https://geocoding-api.open-meteo.com/v1/search"

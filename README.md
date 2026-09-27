@@ -12,7 +12,7 @@ React + Vite + TypeScript + Leaflet
                ▼
 FastAPI ── Open-Meteo forecast + geocoding APIs
    │
-   └── SQLAlchemy ── SQLite (local) or PostgreSQL/Supabase (configured)
+   └── SQLAlchemy ── Supabase-managed PostgreSQL
         ├── verification metrics
         └── forecast weight history
 ```
@@ -23,7 +23,7 @@ The browser calls FastAPI only. Database credentials and any future provider sec
 
 - Frontend: React 18, Vite, TypeScript, Tailwind CSS, React Router, Axios, React-Leaflet/Leaflet, Recharts, Lucide
 - Backend: Python 3.11+, FastAPI, httpx, Pydantic Settings, SQLAlchemy
-- Database: SQLite for a quick local start; PostgreSQL-compatible connection strings for Supabase deployments
+- Database: Supabase-managed PostgreSQL (required for app runtime); isolated SQLite is used only by automated tests
 - Forecast data: Open-Meteo weather forecast and geocoding APIs
 - Administrative data: provided ADM0/ADM1/ADM2 GeoJSON; source and license notes in [`docs/geojson-sources.md`](docs/geojson-sources.md)
 
@@ -43,11 +43,11 @@ tests/                       Backend and frontend unit/component tests
 
 ## Environment variables
 
-Copy `.env.example` to `backend/.env` for the server and `frontend/.env.local` for Vite. The example contains no secrets.
+Copy `.env.example` to `backend/.env` for the server and `frontend/.env.example` to `frontend/.env.local` for Vite. The examples contain placeholders only; never put database credentials in the frontend environment file.
 
 | Variable | Used by | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | Backend | SQLAlchemy URL. Default is local SQLite; for Supabase use a PostgreSQL URL such as `postgresql+psycopg://...`. |
+| `DATABASE_URL` | Backend | Required server-only Supabase PostgreSQL URL, preferably the shared transaction pooler URL (port 6543) for Vercel. |
 | `CORS_ORIGINS` | Backend | Comma-separated allowed frontend origins. |
 | `PROVIDER_TIMEOUT_SECONDS` | Backend | Upstream request timeout. |
 | `CACHE_TTL_SECONDS` | Backend | Short in-memory cache for matching provider/geocoding requests. |
@@ -71,9 +71,22 @@ Copy-Item ..\.env.example .env
 py -m uvicorn app.main:app --reload
 ```
 
-The API is at `http://localhost:8000`; interactive OpenAPI docs are at `http://localhost:8000/docs`. The SQLite database is created on first start in the backend working directory.
+The API is at `http://localhost:8000`; interactive OpenAPI docs are at `http://localhost:8000/docs`. Set a valid Supabase `DATABASE_URL` before launching the backend.
 
-For Supabase/PostgreSQL, create a project, run [`backend/migrations/001_skill_metrics.sql`](backend/migrations/001_skill_metrics.sql) in its SQL editor, and set a backend-only `DATABASE_URL` to the project's PostgreSQL connection string (using the `postgresql+psycopg` SQLAlchemy driver). The migration enables RLS and creates no public table policies.
+MausamMitra requires Supabase Postgres at runtime. Create a Supabase project, apply [`backend/migrations/001_skill_metrics.sql`](backend/migrations/001_skill_metrics.sql) through the Supabase SQL editor or migration workflow, and set `DATABASE_URL` in `backend/.env` to the project's server-side PostgreSQL connection string. For serverless/Vercel, choose Supabase's shared transaction pooler (port 6543); the backend uses SQLAlchemy `NullPool` and disables psycopg prepared statements for that mode. Never put this URL in a `VITE_` variable or commit it.
+
+Copy `.env.example` to `backend/.env`, replace the placeholders with the connection details from Supabase's **Connect → Transaction pooler** panel, URL-encoding reserved characters in the database password, and keep the file private. The local API does not start without `DATABASE_URL`; the app no longer falls back to a local SQLite database. SQLite is permitted only inside pytest's isolated test configuration.
+
+#### Move existing local history
+
+After applying the schema migration and setting `DATABASE_URL` in the shell, copy the existing local SQLite tables into the Supabase project:
+
+```powershell
+$env:DATABASE_URL = 'postgresql+psycopg://postgres.<PROJECT_REF>:<PASSWORD>@aws-0-<REGION>.pooler.supabase.com:6543/postgres?sslmode=require'
+py backend/scripts/migrate_sqlite_to_supabase.py --sqlite .\mausammitra.db
+```
+
+The script copies `model_skill_metrics` and `weight_history`, preserves record IDs, skips IDs already present, reports inserted counts, and leaves the source SQLite file untouched. The migration must be applied first. The current local database contains 600 `weight_history` rows and no skill metric rows.
 
 ### Frontend
 
@@ -81,7 +94,7 @@ In a second terminal:
 
 ```powershell
 cd frontend
-Copy-Item ..\.env.example .env.local
+Copy-Item .env.example .env.local
 corepack pnpm install
 corepack pnpm run dev
 ```
@@ -90,7 +103,7 @@ Vite serves the app at `http://localhost:5173`. The starter location is Mumbai �
 
 ### Docker
 
-Docker Compose is not needed for local MVP development: SQLite and two development servers are sufficient. No compose file is included.
+Docker Compose is not needed for local MVP development. Run the frontend and backend development servers separately and connect the backend to Supabase Postgres. No compose file is included.
 
 ## API
 

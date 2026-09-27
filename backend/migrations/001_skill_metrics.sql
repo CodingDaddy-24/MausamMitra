@@ -32,3 +32,5 @@ create index if not exists ix_weight_history_recorded_at on weight_history(recor
 -- The backend connects directly with its server-side database role; deny anonymous Data API access.
 alter table model_skill_metrics enable row level security;
 alter table weight_history enable row level security;
+revoke all on table model_skill_metrics, weight_history from public, anon, authenticated;
+revoke all on sequence model_skill_metrics_id_seq, weight_history_id_seq from public, anon, authenticated;
