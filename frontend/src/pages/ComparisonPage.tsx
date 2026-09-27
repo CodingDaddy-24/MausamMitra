@@ -12,7 +12,7 @@ export function ComparisonPage({ context }: { context: AppContextValue }) {
   const [data, setData] = useState<Awaited<ReturnType<typeof getModelComparison>> | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  useEffect(() => { let active = true; setLoading(true); setError(''); getModelComparison(context.selection, variable).then(result => { if (active) setData(result) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.region, context.selection.state, context.selection.district, context.selection.lead_hours, variable])
+  useEffect(() => { let active = true; if (!context.selection.district) { setData(null); setError(''); setLoading(false); return () => { active = false } }; setLoading(true); setError(''); getModelComparison(context.selection, variable).then(result => { if (active) setData(result) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.region, context.selection.state, context.selection.district, context.selection.lead_hours, variable])
   const series = useMemo(() => {
     const allTimes = data?.blended_hourly.map(point => point.time) || []
     return allTimes.map((time, index) => {

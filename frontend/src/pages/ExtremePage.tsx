@@ -10,7 +10,7 @@ type ExtremeData = { risks: Risk[]; thresholds: Record<string, { unit: string; y
 const WeatherMap = lazy(() => import('../components/WeatherMap'))
 export function ExtremePage({ context }: { context: AppContextValue }) {
   const [data, setData] = useState<ExtremeData | null>(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
-  useEffect(() => { let active = true; setLoading(true); setError(''); getExtremeWeather(context.selection).then(result => { if (active) setData(result as ExtremeData) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.region, context.selection.state, context.selection.district, context.selection.lead_hours])
+  useEffect(() => { let active = true; if (!context.selection.district) { setData(null); setError(''); setLoading(false); return () => { active = false } }; setLoading(true); setError(''); getExtremeWeather(context.selection).then(result => { if (active) setData(result as ExtremeData) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.region, context.selection.state, context.selection.district, context.selection.lead_hours])
   const icons: Record<string, string> = { rainfall: 'RAIN', wind: 'WIND', heat: 'HEAT' }
   const risk = data?.risks || []
   return <div className="page-stack"><section className="page-intro"><div><div className="section-kicker"><ShieldAlert size={14} /> THRESHOLD SCREENING</div><h2>Extreme weather</h2><p>Backend-driven threshold indicators for {context.selection.district}, {context.selection.state}.</p></div></section>

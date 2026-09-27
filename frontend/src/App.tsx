@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { BarChart3, ChevronDown, Clock3, CloudRain, History, LayoutDashboard, Map, Menu, TriangleAlert, X } from 'lucide-react'
+import { BarChart3, ChevronDown, Clock3, History, LayoutDashboard, Map, Menu, TriangleAlert } from 'lucide-react'
 import { errorMessage, getForecast } from './api'
 import type { Forecast, LeadHours, LocationSelection } from './types'
 
@@ -14,11 +14,11 @@ export type AppContextValue = { selection: LocationSelection; setSelection: (val
 export const TITLES: Record<string, string> = { '/': 'Forecast dashboard', '/map': 'Weather map', '/comparison': 'Model comparison', '/extreme': 'Extreme weather', '/history': 'Historical analysis' }
 
 function Shell() {
-  const [selection, setSelection] = useState<LocationSelection>({ region: 'Western India', state: 'Maharashtra', district: 'Mumbai', lead_hours: 24 })
+  const [selection, setSelection] = useState<LocationSelection>({ region: '', state: '', district: '', lead_hours: 24 })
   const [forecast, setForecast] = useState<Forecast | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const refresh = useCallback(async () => {
@@ -30,8 +30,8 @@ function Shell() {
     setError('')
     if (value.region !== selection.region || value.state !== selection.state || value.district !== selection.district || value.lead_hours !== selection.lead_hours) setForecast(null)
   }, [selection])
-  useEffect(() => { void refresh() }, [])
-  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+  useEffect(() => { if (selection.district) void refresh() }, [])
+  useEffect(() => { setSidebarOpen(false) }, [location.pathname])
 
   const context: AppContextValue = { selection, setSelection: updateSelection, forecast, loading, error, refresh }
   const links = [
@@ -42,10 +42,13 @@ function Shell() {
     { to: '/history', label: 'Historical analysis', icon: History },
   ]
   const currentTime = forecast?.generated_at ? new Date(forecast.generated_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Awaiting data'
-  return <div className="app-shell">
-    {mobileOpen ? <button aria-label="Close navigation" className="mobile-scrim" onClick={() => setMobileOpen(false)} /> : null}
-    <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
-      <div className="brand"><div className="brand-mark"><CloudRain size={21} /></div><div><strong>MausamMitra</strong><span>WEATHER INTELLIGENCE</span></div><button className="icon-button mobile-close" aria-label="Close menu" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
+  return <div className={`app-shell ${sidebarOpen ? 'navigation-open' : ''}`}>
+    {sidebarOpen ? <button aria-label="Close navigation" className="mobile-scrim" onClick={() => setSidebarOpen(false)} /> : null}
+    <header className="site-header">
+      <button className="icon-button menu-toggle" aria-label={sidebarOpen ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(value => !value)}><Menu size={20} /></button>
+      <div className="site-heading"><h1>MausamMitra - Weather Intelligence</h1><p>Hybrid AI–NWP Multi-Model Forecast Blending System</p><small>Developed by Team Yuva | SIH Problem Statement ID: 26081 (Ministry of Earth Sciences - NCMRWF | Theme: Disaster Management)</small></div>
+    </header>
+    <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
       <div className="nav-label">OPERATIONS</div>
       <nav className="nav-list" aria-label="Main navigation">{links.map(({ to, label, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={17} strokeWidth={1.8} /><span>{label}</span>{to === '/extreme' ? <span className="nav-live" /> : null}</NavLink>)}</nav>
       <div className="sidebar-spacer" />
@@ -54,8 +57,7 @@ function Shell() {
     </aside>
     <main className="main-shell">
       <header className="topbar">
-        <button className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
-        <div className="topbar-title"><span className="eyebrow">INDIA WEATHER MONITOR</span><h1>{TITLES[location.pathname] || 'MausamMitra'}</h1></div>
+        <div className="topbar-title"><span className="eyebrow">INDIA WEATHER MONITOR</span><h2>{TITLES[location.pathname] || 'MausamMitra'}</h2></div>
         <div className="breadcrumb"><span>India</span><ChevronDown size={13} className="crumb-chevron" /><span>{selection.region || 'Region'}</span><ChevronDown size={13} className="crumb-chevron" /><span>{selection.state || 'State'}</span><ChevronDown size={13} className="crumb-chevron" /><strong>{selection.district || 'District'}</strong></div>
         <div className="topbar-time"><span><Clock3 size={14} /> FORECAST UPDATED</span><strong>{currentTime}</strong></div>
       </header>

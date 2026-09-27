@@ -10,7 +10,7 @@ const names: Record<string, string> = { gfs: 'GFS', ifs: 'IFS HRES', aifs: 'AIFS
 export function HistoricalPage({ context }: { context: AppContextValue }) {
   const [data, setData] = useState<Historical | null>(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
   const [weightVariable, setWeightVariable] = useState('temperature')
-  useEffect(() => { let active = true; setLoading(true); setError(''); getHistorical(context.selection).then(result => { if (active) setData(result as Historical) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.state, context.selection.district])
+  useEffect(() => { let active = true; if (!context.selection.district) { setData(null); setError(''); setLoading(false); return () => { active = false } }; setLoading(true); setError(''); getHistorical(context.selection).then(result => { if (active) setData(result as Historical) }).catch(reason => { if (active) setError(errorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [context.selection.state, context.selection.district])
   const weights = useMemo(() => {
     const rows = (data?.weight_history || []).filter(item => item.variable === weightVariable); const byTime = new Map<string, Record<string, unknown>>()
     rows.forEach(item => { const key = new Date(item.time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }); const row = byTime.get(key) || { time: key }; row[item.provider] = item.weight * 100; byTime.set(key, row) })

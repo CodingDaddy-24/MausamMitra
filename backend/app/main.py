@@ -9,7 +9,7 @@ from . import models
 from .config import get_settings
 from .database import get_db
 from .forecasting import _aggregate, build_forecast
-from .locations import _center, district_feature_in_state, list_districts, list_regions, list_states
+from .locations import _center, district_feature_in_state, list_districts, list_regions, list_states, normalized_state, read_boundaries
 from .providers import ProviderError
 from .risk import THRESHOLDS
 from .schemas import ForecastRequest, ForecastResponse
@@ -40,6 +40,19 @@ def states(region: str = Query(min_length=2)):
 @app.get("/api/locations/districts")
 def districts(state: str = Query(min_length=2)):
     return {"districts": list_districts(state)}
+
+
+@app.get("/api/map/boundaries")
+def map_boundaries(level: str = "states", state: str | None = None):
+    """Return administrative outlines without triggering any forecast provider calls."""
+    states, districts, _ = read_boundaries()
+    if level == "states":
+        return states
+    if level == "districts" and state:
+        selected = {name.casefold() for name in list_districts(state)}
+        features = [feature for feature in districts["features"] if (feature["properties"].get("Name") or feature["properties"].get("NAME") or "").casefold() in selected]
+        return {"type": "FeatureCollection", "features": features}
+    raise HTTPException(status_code=422, detail="level must be states, or districts with a state")
 
 
 def _forecast_request(region: str, state: str, district: str, lead_hours: int) -> ForecastRequest:
