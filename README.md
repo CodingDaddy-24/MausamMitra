@@ -31,6 +31,7 @@ The browser calls FastAPI only. Database credentials and any future provider sec
 
 ```text
 backend/app/                 FastAPI routes, providers, blending, risk, and storage
+backend/data/geojson/india/  Boundary assets bundled with the Vercel backend service
 backend/migrations/          PostgreSQL schema migration
 data/geojson/india/          Supplied India administrative boundaries + source metadata
 docs/                        API, data source, and methodology notes

@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     open_meteo_geocoding_url: str = "https://geocoding-api.open-meteo.com/v1/search"
     provider_timeout_seconds: float = 12.0
     cache_ttl_seconds: int = 600
-    geojson_dir: Path = Path(__file__).resolve().parents[2] / "data" / "geojson" / "india"
+    # Keep boundaries inside the backend service root so Vercel bundles them with FastAPI.
+    geojson_dir: Path = Path(__file__).resolve().parents[1] / "data" / "geojson" / "india"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

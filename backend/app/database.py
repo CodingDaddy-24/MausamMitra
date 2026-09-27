@@ -17,6 +17,11 @@ def _make_engine():
     parsed_url = make_url(database_url)
     if parsed_url.get_backend_name() != "postgresql":
         raise RuntimeError("DATABASE_URL must use Supabase PostgreSQL.")
+    # Supabase's dashboard displays postgresql:// URLs; this project installs psycopg 3,
+    # so make that driver explicit when the copied URL doesn't include a driver name.
+    if parsed_url.drivername == "postgresql":
+        parsed_url = parsed_url.set(drivername="postgresql+psycopg")
+        database_url = parsed_url.render_as_string(hide_password=False)
     if "pooler.supabase.com" in (parsed_url.host or "") and parsed_url.port == 6543:
         # Supavisor transaction pooling is appropriate for Vercel/serverless.
         return create_engine(database_url, poolclass=NullPool, connect_args={"prepare_threshold": None})
